@@ -1,19 +1,17 @@
 (in-package :cl-games-battleship)
 
-(defun constant-killer (&key game-space-config ships-config result)
-  (if game-space-config
-      (progn
-	(setf *killer-stack* (list '(1 1) game-space-config))
-	(first *killer-stack*))
-      (let ((to-kill (first *killer-stack*))
-	    (gsconfig (second *killer-stack*)))
-	(if (= (first gsconfig)
-	       (first to-kill))
-	(setf *killer-stack* (list (list 1 (+ 1 (second to-kill))) gsconfig))
-	(setf *killer-stack* (list (list (+ 1 (first to-kill))
-					 (second to-kill)) gsconfig)))
-	(if (>= (second gsconfig) (second to-kill))
-	    (first *killer-stack*)))))
+(defun constant-killer (&key game-space-config ships-config)
+  (let ((gsconfig game-space-config)
+	to-kill)
+    #'(lambda (&optional result)
+	(if (null result)
+	      (setf to-kill '(1 1))
+	      (if (= (first gsconfig)
+		     (first to-kill))
+		    (setf to-kill (list 1 (+ 1 (second to-kill))))
+		    (setf to-kill (list (+ 1 (first to-kill))
+					(second to-kill)))))
+	to-kill)))
 
 ;; Intelligent killer
 

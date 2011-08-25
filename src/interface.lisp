@@ -12,23 +12,23 @@
 			ships-config
 			&key
 			(placer #'constant-placer)
-			(killer #'constant-killer))
-  (setf *gamespace* (make-instance 'game-space
-				   :shconfig ships-config
-				   :gsconfig game-space-config
-				   :placer placer))
-  (setf *killer-stack* nil)
-  (let ((shooting-place (funcall killer
-				 :game-space-config game-space-config
-				 :ships-config ships-config)))
-    (let ((result (shoot *gamespace* shooting-place)))
+			(killer-costructor #'constant-killer))
+  (let ((gamespace (make-instance 'game-space
+				  :shconfig ships-config
+				  :gsconfig game-space-config
+				  :placer placer)))
+    (let* ((killer (funcall killer-costructor
+			    :game-space-config game-space-config
+			    :ships-config ships-config))
+	   (shooting-place (funcall killer))
+	   (result (shoot gamespace shooting-place)))
       (let ((battle-result (loop
 			      for i upto (apply #'* game-space-config)
 			      doing
 				(setf shooting-place
-				      (funcall killer :result result))
-				(setf result (shoot *gamespace* shooting-place))
-				(if (not (find-ship-alive *gamespace*))
+				      (funcall killer result))
+				(setf result (shoot gamespace shooting-place))
+				(if (not (find-ship-alive gamespace))
 				    (return i))
 			      finally (return :loose))))
 	(if (eql :loose battle-result)

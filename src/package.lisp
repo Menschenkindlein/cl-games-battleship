@@ -3,7 +3,3 @@
 		     :start-easy-game))
 
 (in-package :cl-games-battleship)
-
-(defvar *gamespace*)
-
-(defvar *killer-stack*)
