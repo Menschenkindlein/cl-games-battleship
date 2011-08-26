@@ -138,10 +138,12 @@
    (correct :accessor correct)))
 
 (defun check-for-collapsing-ships (ships gsconfig)
-  (let ((all-own-cells (apply #'append
-			      (collect-the-lowest-level
-			       (own-cells ship)
-			       (ship in ships))))
+  (let ((all-own-cells (mapcar #'(lambda (cell)
+				   (list (x cell) (y cell)))
+			       (apply #'append
+				      (collect-the-lowest-level
+				       (own-cells ship)
+				       (ship in ships)))))
 	(all-nearest-cells (apply #'append
 				  (collect-the-lowest-level
 				   (nearest-cells ship)
@@ -153,9 +155,9 @@
 		       (< (first gsconfig) x)
 		       (> 0 y)
 		       (< (second gsconfig) y)
-		       (find (list x y) all-nearest-cells)
+		       (find cell all-nearest-cells :test #'equal)
 		       (< 1 (count cell all-own-cells)))))
-	     all-nearest-cells)))
+	     all-own-cells)))
 
 (defmethod initialize-instance :after ((game-space game-space)
 				       &key ships-positions)

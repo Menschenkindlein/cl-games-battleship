@@ -54,8 +54,13 @@
   (format t "Insert your ships position: ")
   (read))
 
-(defun check-shooting-place (shooting-place)
-  (listp shooting-place))
+(defun check-shooting-place (shooting-place game-space-config)
+  (and (integerp (first shooting-place))
+       (integerp (second shooting-place))
+       (< 0 (first shooting-place))
+       (>= (first game-space-config) (first shooting-place))
+       (< 0 (second shooting-place))
+       (>= (second game-space-config) (second shooting-place))))
 
 (defun start-game-human (name
 			 &key
@@ -84,64 +89,69 @@
 				 :game-space-config ',game-space-config
 				 :ships-config ',ships-config)))
 	 shooting-place-comp result-comp)
-    (if (and (correct gamespace)
-	     (= (length ships-positions)
-		(length ships-config)))
-	(loop for turn from 1 upto (apply #'* game-space-config)
-	   doing
-	     (let
-		 ((battle-result-human
-		   (loop
-		      (format t "This is your gamespace:~%")
-		      (print-gamespace gamespace)
-		      (format t "This is the comp's gamespace:~%")
-		      (print-gamespace gamespace-comp t)
-		      (if (not (find-ship-alive gamespace-comp))
-			  (return (win turn name)))
-		      (let ((shooting-place (ask-human-for-shoot))
-			    result)
-			(if (check-shooting-place shooting-place)
-			    (progn
-			      (setf result (shoot gamespace-comp
-						  shooting-place))
-			      (cond
-				((eql :missed result)
-				 (format t "~%You missed!~%~%")
-				 (sleep 2)
-				 (return))
-				((eql :shooted result)
-				 (format
-				  t "~%You have shooted the enemy boat!~%~%")
-				 (sleep 2))
-				((eql :killed result)
-				 (format
-				  t "~%You have killed the enemy boat!~%~%")
-				 (sleep 2))))
-			    (return (loose name)))))))
-	       (if battle-result-human
-		   (return battle-result-human)
-		   (let
-		       ((battle-result-comp
-			 (loop 
-			    (if (not (find-ship-alive gamespace))
-				(return (win turn :comp)))
-			    (setf shooting-place-comp (funcall killer
-							       result-comp))
-			    (setf result-comp (shoot gamespace
-						     shooting-place-comp))
-			    (cond
-			      ((eql :missed result-comp)
-			       (progn
-				 (format t "~%Comp missed!~%~%")
-				 (sleep 2)
-				 (return)))
-			      ((eql :shooted result-comp)
-			       (format t "~%Comp have shooted your boat!~%~%")
-			       (sleep 2))
-			      ((eql :killed result-comp)
-			       (format
-				t "~%Comp have killed your boat!~%~%")
-			       (sleep 2))))))
-		     (if battle-result-comp
-			 (return battle-result-comp))))))
-	     (loose name))))
+    (cond
+      ((or (not (correct gamespace))
+	   (not (= (length ships-positions)
+		   (length ships-config)))) (loose name))
+      ((or (not (correct gamespace-comp))
+	   (not (= (length ships-positions-comp)
+		   (length ships-config)))) (loose :comp))
+      (t
+       (loop for turn from 1 upto (apply #'* game-space-config)
+	  doing
+	    (let
+		((battle-result-human
+		  (loop
+		     (format t "This is your gamespace:~%")
+		     (print-gamespace gamespace)
+		     (format t "This is the comp's gamespace:~%")
+		     (print-gamespace gamespace-comp t)
+		     (if (not (find-ship-alive gamespace-comp))
+			 (return (win turn name)))
+		     (let ((shooting-place (ask-human-for-shoot))
+			   result)
+		       (if (check-shooting-place shooting-place
+						 game-space-config)
+			   (progn
+			     (setf result (shoot gamespace-comp
+						 shooting-place))
+			     (cond
+			       ((eql :missed result)
+				(format t "~%You missed!~%~%")
+				(sleep 2)
+				(return))
+			       ((eql :shooted result)
+				(format
+				 t "~%You have shooted the enemy boat!~%~%")
+				(sleep 2))
+			       ((eql :killed result)
+				(format
+				 t "~%You have killed the enemy boat!~%~%")
+				(sleep 2))))
+			   (return (loose name)))))))
+	      (if battle-result-human
+		  (return battle-result-human)
+		  (let
+		      ((battle-result-comp
+			(loop 
+			   (if (not (find-ship-alive gamespace))
+			       (return (win turn :comp)))
+			   (setf shooting-place-comp (funcall killer
+							      result-comp))
+			   (setf result-comp (shoot gamespace
+						    shooting-place-comp))
+			   (cond
+			     ((eql :missed result-comp)
+			      (progn
+				(format t "~%Comp missed!~%~%")
+				(sleep 2)
+				(return)))
+			     ((eql :shooted result-comp)
+			      (format t "~%Comp have shooted your boat!~%~%")
+			      (sleep 2))
+			     ((eql :killed result-comp)
+			      (format
+			       t "~%Comp have killed your boat!~%~%")
+			      (sleep 2))))))
+		    (if battle-result-comp
+			(return battle-result-comp))))))))))
