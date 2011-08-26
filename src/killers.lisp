@@ -13,6 +13,18 @@
 					(second to-kill)))))
 	to-kill)))
 
+(defun random-killer (&key game-space-config ships-config)
+  (let ((gsconfig game-space-config)
+	killed
+	to-kill)
+    #'(lambda (&optional result)
+	(loop
+	   (setf to-kill (list (+ 1 (random (first gsconfig)))
+			       (+ 1 (random (second gsconfig)))))
+	   (if (not (find to-kill killed :test #'equal))
+	       (progn (push to-kill killed)
+		      (return to-kill)))))))
+
 ;; Intelligent killer
 
 ;; (defclass hypotetic-ship (ship) ())

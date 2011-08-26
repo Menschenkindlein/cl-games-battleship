@@ -15,7 +15,10 @@
 					2 2 2
 					1 1 1 1))
 			(placer #'constant-placer)
-			(killer-costructor #'constant-killer))
+			(killer-constructor #'constant-killer))
+  (if (eql placer :random-bf) (setf placer #'random-placer-bf))
+  (if (eql killer-constructor :random)
+      (setf killer-constructor #'random-killer))
   (let* ((ships-positions (eval `(funcall ,placer
 					  ',game-space-config
 					  ',ships-config)))
@@ -24,27 +27,29 @@
 				  :gsconfig game-space-config
 				  :ships-positions
 				  ships-positions))
-	 (killer (eval `(funcall ,killer-costructor
+	 (killer (eval `(funcall ,killer-constructor
 				 :game-space-config ',game-space-config
-				 :ships-config ',ships-config)))
-	 (shooting-place (eval `(funcall ,killer)))
+				 :ships-config ',ships-config))))
+    (print-gamespace gamespace)
+    (let* ((shooting-place (eval `(funcall ,killer)))
 	 (result (shoot gamespace shooting-place)))
-    (if (and (correct gamespace)
-	     (= (length ships-positions)
-		(length ships-config)))
-	(let ((battle-result (loop
-				for i upto (apply #'* game-space-config)
-				doing
-				  (if (not (find-ship-alive gamespace))
-				      (return i))
-				  (setf shooting-place
-					(eval `(funcall ,killer ,result)))
-				  (setf result (shoot gamespace shooting-place))
-				finally (return :loose))))
-	  (if (eql :loose battle-result)
-	      (loose :killer)
-	      (win battle-result :killer)))
-	(loose :placer))))
+      (if (and (correct gamespace)
+	       (= (length ships-positions)
+		  (length ships-config)))
+	  (let ((battle-result (loop
+				  for i upto (apply #'* game-space-config)
+				  doing
+				    (if (not (find-ship-alive gamespace))
+					(return i))
+				    (setf shooting-place
+					  (eval `(funcall ,killer ,result)))
+				    (setf result (shoot gamespace
+							shooting-place))
+				  finally (return :loose))))
+	    (if (eql :loose battle-result)
+		(loose :killer)
+		(win (+ 1 battle-result) :killer)))
+	  (loose :placer)))))
 
 (defun ask-human-for-shoot ()
   (format t "What is your place to shoot?~%")
@@ -70,7 +75,10 @@
 					 2 2 2
 					 1 1 1 1))
 			 (placer #'constant-placer)
-			 (killer-costructor #'constant-killer))
+			 (killer-constructor #'constant-killer))
+  (if (eql placer :random-bf) (setf placer #'random-placer-bf))
+  (if (eql killer-constructor :random)
+      (setf killer-constructor #'random-killer))
   (let* ((ships-positions-comp (eval `(funcall ,placer
 					       ',game-space-config
 					       ',ships-config)))
@@ -85,7 +93,7 @@
 				   :gsconfig game-space-config
 				   :ships-positions
 				   ships-positions))
-	 (killer (eval `(funcall ,killer-costructor
+	 (killer (eval `(funcall ,killer-constructor
 				 :game-space-config ',game-space-config
 				 :ships-config ',ships-config)))
 	 shooting-place-comp result-comp)
