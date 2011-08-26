@@ -6,9 +6,9 @@
               ((:file "package")
 	       (:file "engine" :depends-on ("package"))
                (:file "placers" :depends-on ("engine"))
-               (:file "killers" :depends-on ("package"
-					     "engine"))
-               (:file "interface" :depends-on ("package"
-					       "engine"
+               (:file "killers" :depends-on ("engine"))
+               (:file "printer" :depends-on ("engine"))
+               (:file "interface" :depends-on ("engine"
 					       "placers"
-					       "killers"))))))
+					       "killers"
+					       "printer"))))))

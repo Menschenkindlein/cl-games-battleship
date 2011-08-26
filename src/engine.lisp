@@ -111,17 +111,31 @@
 	(loop for cell in (nearest-cells ship) doing
 	     (shoot sea cell))
 	:killed)
-      :shooted))
+      (progn
+	(loop for cell in (remove-if #'(lambda (x)
+					 (or (= (first x)
+						(first where))
+					     (= (second x)
+						(second where))
+					     (< 1 (expt
+						   (- (first x)
+						      (first where)) 2))
+					     (< 1 (expt
+						   (- (second x)
+						      (second where)) 2))))
+				     (nearest-cells ship))
+	   doing
+	     (shoot sea cell))
+	:shooted)))
 
 (defclass game-space ()
-  ((placer :initarg :placer
-	   :reader placer)
-   (game-space-config :initarg :gsconfig
+  ((game-space-config :initarg :gsconfig
 		      :reader gsconfig)
    (ships-config :initarg :shconfig
 		 :reader shconfig)
    (ships :accessor ships)
-   (sea :accessor sea)))
+   (sea :accessor sea)
+   (correct :accessor correct)))
 
 (defun check-for-collapsing-ships (ships gsconfig)
   (let ((all-own-cells (apply #'append
@@ -143,12 +157,10 @@
 		       (< 1 (count cell all-own-cells)))))
 	     all-nearest-cells)))
 
-(defmethod initialize-instance :after ((game-space game-space) &key)
+(defmethod initialize-instance :after ((game-space game-space)
+				       &key ships-positions)
   (setf (ships game-space)
-	(loop for ship in
-	     (funcall (placer game-space)
-		      (gsconfig game-space)
-		      (shconfig game-space))
+	(loop for ship in ships-positions
 	   collecting
 	     (make-instance 'real-ship
 			    ;; Converting numbers into indexes
@@ -156,8 +168,9 @@
 			    :coords (list (- (first (second ship)) 1)
 					  (- (second (second ship)) 1))
 			    :direction (third ship))))
-  (when (check-for-collapsing-ships (ships game-space) (gsconfig game-space))
-    (error "Error of collapsing ships!"))
+  (if (check-for-collapsing-ships (ships game-space) (gsconfig game-space))
+      (setf (correct game-space) nil)
+      (setf (correct game-space) t))
   (setf (sea game-space) (make-instance 'sea
 					:gsconfig (gsconfig game-space)
 					:ships (ships game-space))))
@@ -166,8 +179,7 @@
 
 (defmethod find-a-ship ((game-space game-space) where)
   (find-if #'(lambda (ship)
-	       (if (alive ship)
-		   (find-cell ship where))) (ships game-space)))
+	       (find-cell ship where)) (ships game-space)))
 
 (defgeneric find-ship-alive (game-space))
 
