@@ -12,7 +12,7 @@
 		    (setf to-kill (list 1 (+ 1 (second to-kill))))
 		    (setf to-kill (list (+ 1 (first to-kill))
 					(second to-kill)))))
-	(princ to-kill))))
+	to-kill)))
 
 (defun random-killer (&key game-space-config ships-config)
   (declare (ignore ships-config))
@@ -22,8 +22,8 @@
     #'(lambda (&optional result)
 	(declare (ignore result))
 	(loop
-	   (setf to-kill (list (+ 1 (random (first gsconfig)))
-			       (+ 1 (random (second gsconfig)))))
+	   (setf to-kill (loop for coord in gsconfig collecting
+			      (+ 1 (random coord))))
 	   (if (not (find to-kill killed :test #'equal))
 	       (progn (push to-kill killed)
 		      (return to-kill)))))))
@@ -78,8 +78,8 @@
 							   (second to-kill))))
 						(aura-2d (list to-kill) 1)))))))
 	(loop
-	   (setf to-kill (list (+ 1 (random (first gsconfig)))
-			       (+ 1 (random (second gsconfig)))))
+	   (setf to-kill (loop for coord in gsconfig collecting
+			      (+ 1 (random coord))))
 	   (if (not (find to-kill killed :test #'equal))
 	       (progn (push to-kill killed)
 		      (return to-kill)))))))

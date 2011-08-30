@@ -2,7 +2,8 @@
 
 ;; Works only on greater than 10x10 and (4 3 3 2 2 2 1 1 1 1) ships-config
 (defun constant-placer (game-space-config ships-config)
-  (if (and (< 9 (first game-space-config))
+  (if (and (= 2 (length game-space-config))
+	   (< 9 (first game-space-config))
 	   (< 9 (second game-space-config))
 	   (equal '(4 3 3 2 2 2 1 1 1 1) ships-config))
       '((4 (1 1) nil)
@@ -21,11 +22,10 @@
   (loop for try from 1 by 1 doing
        (let ((places (loop for ship in ships-config collecting
 			  (list ship
-				(list (+ 1 (random
-					    (first game-space-config)))
-				      (+ 1 (random
-					    (second game-space-config))))
-				(if (= 1 (random 2))
+				(loop for coord in game-space-config
+				     collecting
+				     (+ 1 (random coord)))
+				(if (= 1 (random (length game-space-config)))
 				    t)))))
 	 (when (correct (make-instance 'game-space
 				       :shconfig ships-config
