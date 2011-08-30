@@ -57,9 +57,81 @@
   (format t "What is your place to shoot?~%")
   (list (read) (read)))
 
-(defun ask-human-for-place ()
-  (format t "Insert your ships position:~%")
-  (read))
+(defun ask-human-for-place (ships-config game-space-config)
+  (format t "What method of inserting your ships position do you prefere?~%")
+  (format t "1) Step by step;~%2) All together.~%Choose 1 or 2: ")
+  (let ((choose (read)))
+    (cond
+      ((= 1 choose)
+       (loop
+	  (let (position pos)
+	    (loop
+	       for ship in ships-config
+	       for left downfrom (length ships-config)
+	       doing
+		 (loop
+		    (format t "This is your current position:~%")
+		    (print-gamespace
+		     (make-instance 'game-space
+				    :shconfig ships-config
+				    :gsconfig game-space-config
+				    :ships-positions (if position
+							 position
+							 '((1 (-1 -1) nil)))))
+		    (format t "~a ship~:p left.~%" left)
+		    (format t "Insert your ~a-deck ship position: "
+			    ship)
+		    (setf pos (list (read) (read)))
+		    (when (not (and (integerp (first pos))
+				    (integerp (second pos))))
+		      (error "Wrong answer!"))
+		    (if (< 1 ship)
+			(progn
+			  (format
+			   t "Insert your ~a-deck ship orientation (t/nil): "
+			   ship)
+			  (setf pos (list ship pos (read))))
+			  (setf pos (list ship pos nil)))
+		    (push pos position)
+		    (if (correct (make-instance 'game-space
+						:shconfig ships-config
+						:gsconfig game-space-config
+						:ships-positions position))
+			(return)
+			(progn
+			  (pop position)
+			  (format
+			   t "This is a wrong position.  Try again.~%")))))
+	    (let ((gamespace (make-instance 'game-space
+					    :shconfig ships-config
+					    :gsconfig game-space-config
+					    :ships-positions position)))
+	      (if (correct gamespace)
+		  (progn
+		    (format t "Is this an ultimate variant? (:y/:n) ")
+		    (if (eql (read) :y)
+			(return position)))
+		  (format t "This is a wrong position.  Try again.~%"))))))
+       
+      ((= 2 choose)
+       (loop
+	  (format t "Insert your ships position:~%")
+	  (let ((position (read)))
+	    (if (not (and (listp position)
+			  (= (length position) (length ships-config))
+			  (equal ships-config (mapcar #'car position))))
+		(format t "This is a wrong position.  Try again.~%")
+		(let ((gamespace (make-instance 'game-space
+						:shconfig ships-config
+						:gsconfig game-space-config
+						:ships-positions position)))
+		  (if (correct gamespace)
+		      (progn
+			(format t "Is this an ultimate variant? (:y/:n) ")
+			(if (eql (read) :y)
+			    (return position)))
+		      (format t "This is a wrong position.  Try again.~%")))))))
+      (t (error "Wrong answer!")))))
 
 (defun check-shooting-place (shooting-place game-space-config)
   (and (integerp (first shooting-place))
@@ -91,7 +163,8 @@
 					:gsconfig game-space-config
 					:ships-positions
 					ships-positions-comp))
-	 (ships-positions (ask-human-for-place))
+	 (ships-positions (ask-human-for-place ships-config
+					       game-space-config))
 	 (gamespace (make-instance 'game-space
 				   :shconfig ships-config
 				   :gsconfig game-space-config
