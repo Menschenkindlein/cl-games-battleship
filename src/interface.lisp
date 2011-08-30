@@ -5,7 +5,7 @@
   (list :loose who))
 
 (defun win (turn who)
-  (format t "~a wins in ~a turn~:p" who turn)
+  (format t "~a wins in ~a turn~:p!" who turn)
   (list :win turn who))
 
 (defun start-easy-game (&key
@@ -19,6 +19,8 @@
   (if (eql placer :random-bf) (setf placer #'random-placer-bf))
   (if (eql killer-constructor :random)
       (setf killer-constructor #'random-killer))
+  (if (eql killer-constructor :random-cl)
+      (setf killer-constructor #'clever-random-killer))
   (let* ((ships-positions (eval `(funcall ,placer
 					  ',game-space-config
 					  ',ships-config)))
@@ -56,7 +58,7 @@
   (list (read) (read)))
 
 (defun ask-human-for-place ()
-  (format t "Insert your ships position: ")
+  (format t "Insert your ships position:~%")
   (read))
 
 (defun check-shooting-place (shooting-place game-space-config)
@@ -74,9 +76,11 @@
 					 3 3
 					 2 2 2
 					 1 1 1 1))
-			 (placer #'constant-placer)
-			 (killer-constructor #'constant-killer))
-  (if (eql placer :random-bf) (setf placer #'random-placer-bf))
+			 (placer #'random-placer-bf)
+			 (killer-constructor #'clever-random-killer))
+  (if (eql placer :constant) (setf placer #'constant-placer))
+  (if (eql killer-constructor :constant)
+      (setf killer-constructor #'constant-killer))
   (if (eql killer-constructor :random)
       (setf killer-constructor #'random-killer))
   (let* ((ships-positions-comp (eval `(funcall ,placer

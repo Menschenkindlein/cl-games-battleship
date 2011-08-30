@@ -4,7 +4,8 @@
     ((:module "src"
               :components
               ((:file "package")
-	       (:file "engine" :depends-on ("package"))
+	       (:file "utils" :depends-on ("package"))
+	       (:file "engine" :depends-on ("utils"))
                (:file "placers" :depends-on ("engine"))
                (:file "killers" :depends-on ("engine"))
                (:file "printer" :depends-on ("engine"))

@@ -1,18 +1,10 @@
 (in-package :cl-games-battleship)
 
-(defmacro collect-the-lowest-level (form &rest levels)
-  `(apply #'append
-	  (loop for ,(car (car levels)) ,@(cdr (car levels))
-	     collecting
-	       ,(if (= 1 (length levels))
-		    `(list ,form)
-		    `(collect-the-lowest-level ,form ,@(cdr levels))))))
+(defun-sphere-and-aura 2)
 
 (defclass cell ()
-  ((x-coordinate :initarg :x
-		 :reader x)
-   (y-coordinate :initarg :y
-		 :reader y)
+  ((coordinates :initarg :coords
+		:reader coords)
    (shooted :initform nil
 	    :accessor shooted)))
 
@@ -33,8 +25,7 @@
 (defmethod find-cell ((object multy-cell-object) where)
   (find where (own-cells object)
 	:test #'(lambda (where cell)
-		  (and (= (first where) (x cell))
-		       (= (second where) (y cell))))))
+		  (equal where (coords cell)))))
 
 (defclass sea (multy-cell-object) ())
 
@@ -42,12 +33,12 @@
   (setf (own-cells sea)
 	(remove-if #'(lambda (cell)
 		       (find-if #'(lambda (ship)
-				    (find-cell ship (list (x cell) (y cell))))
+				    (find-cell ship (coords cell)))
 				ships))
 		   (collect-the-lowest-level
-		    (make-instance 'sea-cell :x x :y y)
-		    (x upto (first gsconfig))
-		    (y upto (second gsconfig))))))
+		    (make-instance 'sea-cell :coords (list x y))
+		    (x from -1 upto (first gsconfig))
+		    (y from -1 upto (second gsconfig))))))
 
 (defclass ship (multy-cell-object)
   ((coordinates :initarg :coords
@@ -60,7 +51,7 @@
 	  :accessor alive)))
 
 (defclass real-ship (ship) ;; The difference is neaded for killer AI
-   ((nearest-cells :accessor nearest-cells)))
+   ((aura :accessor aura)))
 
 (defmethod initialize-instance :after ((ship ship) &key)
   (with-accessors ((coords coords)
@@ -70,28 +61,23 @@
 	  (loop for i upto size
 	     collecting
 	       (make-instance 'ship-cell
-			      :x (if direction
-				     (+ (first coords) i)
-				     (first coords))
-			      :y (if direction
-				     (second coords)
-				     (+ (second coords) i)))))))
+			      :coords
+			      (list
+			       (if direction
+				   (+ (first coords) i)
+				   (first coords))
+			       (if direction
+				   (second coords)
+				   (+ (second coords) i))))))))
 
 (defmethod initialize-instance :after ((ship real-ship) &key)
-  (setf (nearest-cells ship)
-	(remove-duplicates
-	 (remove-if
-	  #'(lambda (x) 
-	      (or
-	       (find-cell ship x)
-	       (> 0 (first x))
-	       (> 0 (second x))))
-	  (collect-the-lowest-level
-	   (list (+ (x cell) i)
-		 (+ (y cell) j))
-	   (cell in (own-cells ship))
-	   (i from -1 to 1)
-	   (j from -1 to 1))))))
+  (let ((own-cells (loop for cell in (own-cells ship)
+			collecting (coords cell))))
+    (setf (aura ship)
+	  (remove-if
+	   #'(lambda (x) 
+	       (find-cell ship x))
+	   (aura-2d own-cells 1)))))
 
 (defgeneric shoot (object where))
 
@@ -108,22 +94,17 @@
 			(own-cells ship)))
       (progn
 	(setf (alive ship) nil)
-	(loop for cell in (nearest-cells ship) doing
+	(loop for cell in (aura ship) doing
 	     (shoot sea cell))
 	:killed)
       (progn
-	(loop for cell in (remove-if #'(lambda (x)
-					 (or (= (first x)
-						(first where))
-					     (= (second x)
-						(second where))
-					     (< 1 (expt
-						   (- (first x)
-						      (first where)) 2))
-					     (< 1 (expt
-						   (- (second x)
-						      (second where)) 2))))
-				     (nearest-cells ship))
+	(loop for cell in
+	     (remove-if #'(lambda (x)
+			    (or (= (first x)
+				   (first where))
+				(= (second x)
+				   (second where))))
+			(aura-2d (list where) 1))
 	   doing
 	     (shoot sea cell))
 	:shooted)))
@@ -139,14 +120,14 @@
 
 (defun check-for-collapsing-ships (ships gsconfig)
   (let ((all-own-cells (mapcar #'(lambda (cell)
-				   (list (x cell) (y cell)))
+				   (coords cell))
 			       (apply #'append
 				      (collect-the-lowest-level
 				       (own-cells ship)
 				       (ship in ships)))))
 	(all-nearest-cells (apply #'append
 				  (collect-the-lowest-level
-				   (nearest-cells ship)
+				   (aura ship)
 				   (ship in ships)))))
     (find-if #'(lambda (cell)
 		 (let ((x (first cell))
@@ -156,7 +137,7 @@
 		       (> 0 y)
 		       (< (- (second gsconfig) 1) y)
 		       (find cell all-nearest-cells :test #'equal)
-		       (< 1 (count cell all-own-cells)))))
+		       (< 1 (count cell all-own-cells :test #'equal)))))
 	     all-own-cells)))
 
 (defmethod initialize-instance :after ((game-space game-space)
@@ -197,3 +178,9 @@
     (if (find-a-ship game-space where)
 	(shoot-ship (find-a-ship game-space where) (sea game-space) where)
 	(shoot (sea game-space) where))))
+
+(defmethod find-cell ((object game-space) where)
+  (if (find-a-ship object where)
+      (find-cell (find-a-ship object where) where)
+      (find-cell (sea object) where)))
+

@@ -18,17 +18,19 @@
       (error "I can not work with this config!")))
 
 (defun random-placer-bf (game-space-config ships-config)
-  (loop (let ((places (loop for ship in ships-config collecting
-			   (list ship
-				 (list (+ 1 (random
-					     (first game-space-config)))
-				       (+ 1 (random
-					     (second game-space-config))))
-				 (if (= 1 (random 2))
-				     t)))))
-	  (if (correct (make-instance 'game-space
-				      :shconfig ships-config
-				      :gsconfig game-space-config
-				      :ships-positions
-				      places))
-	      (return places)))))
+  (loop for try from 1 by 1 doing
+       (let ((places (loop for ship in ships-config collecting
+			  (list ship
+				(list (+ 1 (random
+					    (first game-space-config)))
+				      (+ 1 (random
+					    (second game-space-config))))
+				(if (= 1 (random 2))
+				    t)))))
+	 (when (correct (make-instance 'game-space
+				       :shconfig ships-config
+				       :gsconfig game-space-config
+				       :ships-positions
+				       places))
+	   (format t "Uf!  I've tried ~:d times to place my ships!~%" try)
+	   (return places)))))
