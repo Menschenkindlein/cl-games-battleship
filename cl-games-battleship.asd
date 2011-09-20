@@ -4,12 +4,16 @@
     ((:module "src"
               :components
               ((:file "package")
-	       (:file "utils" :depends-on ("package"))
+	       (:module "utils" :depends-on ("package")
+                        :components
+                        ((:file "utils")
+                         (:file "decart" :depends-on ("utils"))))
 	       (:file "engine" :depends-on ("utils"))
-               (:file "placers" :depends-on ("engine"))
-               (:file "killers" :depends-on ("engine"))
-               (:file "printer" :depends-on ("engine"))
-               (:file "interface" :depends-on ("engine"
-					       "placers"
-					       "killers"
-					       "printer"))))))
+	       (:module "bots" :depends-on ("engine")
+			:components
+			((:file "placers")
+			 (:file "killers")))
+	       (:module "interface" :depends-on ("engine" "bots")
+			:components
+			((:file "printer")
+			 (:file "interface" :depends-on ("printer"))))))))

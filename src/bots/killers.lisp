@@ -30,29 +30,19 @@
 
 (defun search-for-ship (just-shooted killed-ships)
   (if just-shooted
-      (append (search-for-ship (find-if #'(lambda (cell)
-					    (let ((xc (first cell))
-						  (yc (second cell))
-						  (xj (first just-shooted))
-						  (yj (second just-shooted)))
-					      (and (or (= xc xj)
-						       (= yc yj))
-						   (or (= 1 (- xc xj))
-						       (= 1 (- yc yj))))))
-					(remove just-shooted killed-ships))
+     (remove-duplicates
+        (append (search-for-ship (find-if #'(lambda (cell)
+					      (find cell (sphere just-shooted 1)
+					            :test #'equal))
+					  (remove just-shooted killed-ships))
 			       (remove just-shooted killed-ships))
-	      (list just-shooted)
-	      (search-for-ship (find-if #'(lambda (cell)
-					    (let ((xc (first cell))
-						  (yc (second cell))
-						  (xj (first just-shooted))
-						  (yj (second just-shooted)))
-					      (and (or (= xc xj)
-						       (= yc yj))
-						   (or (= -1 (- xc xj))
-						       (= -1 (- yc yj))))))
-					(remove just-shooted killed-ships))
-			       (remove just-shooted killed-ships)))))
+	        (list just-shooted)
+	        (search-for-ship (find-if #'(lambda (cell)
+					      (find cell (sphere just-shooted 1)
+					            :test #'equal :from-end t))
+					  (remove just-shooted killed-ships))
+			       (remove just-shooted killed-ships)))
+        :test #'equal)))
 
 (defun clever-random-killer (&key game-space-config ships-config)
   (declare (ignore ships-config))
@@ -63,26 +53,20 @@
     #'(lambda (&optional result)
 	(cond ((eql result :killed)
 	       (push to-kill killed-ships)
-	       (search-for-ship to-kill killed-ships)
 	       (setf killed
 		     (remove-duplicates (append killed 
-						(aura-2d (list to-kill) 1)))))
+						(aura (search-for-ship to-kill killed-ships) 1)))))
 	      ((eql result :shooted)
 	       (push to-kill killed-ships)
 	       (setf killed 
 		     (remove-duplicates
-		      (append killed (remove-if #'(lambda (cell)
-						    (or (= (first cell)
-							   (first to-kill))
-							(= (second cell)
-							   (second to-kill))))
-						(aura-2d (list to-kill) 1)))))))
+		      (append killed (perforated-sphere to-kill))))))
 	(loop
 	   (setf to-kill (loop for coord in gsconfig collecting
 			      (+ 1 (random coord))))
-	   (if (not (find to-kill killed :test #'equal))
-	       (progn (push to-kill killed)
-		      (return to-kill)))))))
+	   (unless (find to-kill killed :test #'equal)
+	     (push to-kill killed)
+	     (return to-kill))))))
 
 ;; Intelligent killer
 
