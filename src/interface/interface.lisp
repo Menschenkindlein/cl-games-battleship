@@ -25,15 +25,15 @@
 					  ',game-space-config
 					  ',ships-config)))
 	 (gamespace (make-instance 'game-space
-				  :gsconfig game-space-config
-				  :ships-positions
-				  ships-positions))
+				   :gsconfig game-space-config
+				   :ships-positions
+				   ships-positions))
 	 (killer (eval `(funcall ,killer-constructor
 				 :game-space-config ',game-space-config
 				 :ships-config ',ships-config))))
     (print-gamespace gamespace)
     (let* ((shooting-place (eval `(funcall ,killer)))
-	 (result (shoot gamespace shooting-place)))
+	   (result (shoot gamespace shooting-place)))
       (if (and (correct gamespace)
 	       (= (length ships-positions)
 		  (length ships-config)))
@@ -95,7 +95,7 @@
 			   ship)
 			  (finish-output)
 			  (setf pos (list ship pos (read))))
-			  (setf pos (list ship pos 1)))
+			(setf pos (list ship pos 1)))
 		    (push pos position)
 		    (if (correct (make-instance 'game-space
 						:gsconfig game-space-config
@@ -109,11 +109,11 @@
 					    :gsconfig game-space-config
 					    :ships-positions position)))
 	      (when (correct gamespace)
-		    (format t "Is this an ultimate variant? (:y/:n) ")
-		    (finish-output)
-		    (if (eql (read) :y)
-			(return position)))))))
-       
+		(format t "Is this an ultimate variant? (:y/:n) ")
+		(finish-output)
+		(if (eql (read) :y)
+		    (return position)))))))
+      
       ((= 2 choose)
        (loop
 	  (format t "Insert your ships position:~%")
@@ -139,7 +139,7 @@
   (not (find-if-not #'null (mapcar (lambda (point conf) (or (not (integerp point))
 							    (> 1 point)
 							    (< conf point)))
-		               shooting-place game-space-config))))
+				   shooting-place game-space-config))))
 
 (defun start-game-human (name
 			 &key

@@ -34,7 +34,7 @@
 				    (find-cell ship (coords cell)))
 				ships))
 		   (mapcar (lambda (cell)
-				(make-instance 'sea-cell :coords cell))
+			     (make-instance 'sea-cell :coords cell))
 			   (cube (sth-list gsconfig 0)
 				 (mapcar (lambda (x) (+ 2 x)) gsconfig))))))
 
@@ -49,23 +49,23 @@
 	  :accessor alive)))
 
 (defclass real-ship (ship) ;; The difference is neaded for killer AI
-   ((neighbours :accessor neighbours)))
+  ((neighbours :accessor neighbours)))
 
 (defmethod initialize-instance :after ((ship ship) &key)
   (with-accessors ((coords coords)
 		   (size size)
 		   (direction direction)) ship
-      (setf (own-cells ship)
-	    (loop for inc upto (- size 1)
-	       collecting
-		(let ((coords (loop for coord in coords collecting coord)))
-		  (incf (nth direction coords) inc)
-		  (make-instance 'ship-cell
-				 :coords coords))))))
+    (setf (own-cells ship)
+	  (loop for inc upto (- size 1)
+	     collecting
+	       (let ((coords (loop for coord in coords collecting coord)))
+		 (incf (nth direction coords) inc)
+		 (make-instance 'ship-cell
+				:coords coords))))))
 
 (defmethod initialize-instance :after ((ship real-ship) &key)
   (let ((own-cells (loop for cell in (own-cells ship)
-			collecting (coords cell))))
+		      collecting (coords cell))))
     (setf (neighbours ship)
 	  (aura own-cells 1))))
 
@@ -78,10 +78,10 @@
 (defgeneric shoot-ship (ship sea where))
 
 (defun perforated-sphere (center)
-	(remove-if #'(lambda (x)
-	                 (= 1 (count-if #'null
+  (remove-if #'(lambda (x)
+		 (= 1 (count-if #'null
 			        (mapcar #'= x center))))
-			(sphere center 1)))
+	     (sphere center 1)))
 
 (defmethod shoot-ship ((ship real-ship) (sea sea) where)
   (shoot-cell (find-cell ship where))
@@ -121,10 +121,10 @@
 				   (neighbours ship)
 				   (ship in (ships game-space))))))
     (loop for cell in all-own-cells never
-		   (or (find cell all-nearest-cells :test #'equal)
-		       (< 1 (count cell all-own-cells :test #'equal))
-		       (find-if (lambda (x) (> 1 x)) cell)
-		       (find-if-not #'null (mapcar #'< (gsconfig game-space) cell))))))
+	 (or (find cell all-nearest-cells :test #'equal)
+	     (< 1 (count cell all-own-cells :test #'equal))
+	     (find-if (lambda (x) (> 1 x)) cell)
+	     (find-if-not #'null (mapcar #'< (gsconfig game-space) cell))))))
 
 (defmethod initialize-instance :after ((game-space game-space)
 				       &key ships-positions)
@@ -154,9 +154,9 @@
 		   ship)) (ships game-space)))
 
 (defmethod shoot ((game-space game-space) where)
-    (if (find-a-ship game-space where)
-	(shoot-ship (find-a-ship game-space where) (sea game-space) where)
-	(shoot (sea game-space) where)))
+  (if (find-a-ship game-space where)
+      (shoot-ship (find-a-ship game-space where) (sea game-space) where)
+      (shoot (sea game-space) where)))
 
 (defmethod find-cell ((object game-space) where)
   (if (find-a-ship object where)
