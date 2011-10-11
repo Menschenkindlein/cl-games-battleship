@@ -31,7 +31,7 @@
 	 (killer (eval `(funcall ,killer-constructor
 				 :game-space-config ',game-space-config
 				 :ships-config ',ships-config))))
-    (print-gamespace gamespace)
+    (print-gamespace gamespace :preview t)
     (let* ((shooting-place (eval `(funcall ,killer)))
 	   (result (shoot gamespace shooting-place)))
       (if (and (correct gamespace)
@@ -40,7 +40,7 @@
 	  (let ((battle-result (loop
 				  for i upto (apply #'* game-space-config)
 				  doing
-				    (if (not (find-ship-alive gamespace))
+				    (if (cleared gamespace)
 					(return i))
 				    (setf shooting-place
 					  (eval `(funcall ,killer ,result)))
@@ -58,7 +58,8 @@
 (defun ask-human-for-place (ships-config game-space-config)
   (format t "What method of inserting your ships position do you prefere?~%")
   (format t "1) Step by step;~%2) All together;~%")
-  (format t "3) Let random-bruteforce placer place my ships.~%Choose 1, 2 or 3: ")
+  (format t "3) Let random-bruteforce placer place my ships.~%")
+  (format t "Choose 1, 2 or 3: ")
   (finish-output)
   (let ((choose (read)))
     (cond
@@ -74,25 +75,28 @@
 		    (print-gamespace
 		     (make-instance 'game-space
 				    :gsconfig game-space-config
-				    :ships-positions (if position
-							 position
-							 (list (list 1 (make-list (length game-space-config)
-							                          :initial-element -1) 1)))))
+				    :ships-positions
+				    (if position
+					position
+					(list 
+					 (list 1 (make-list
+						  (length game-space-config)
+						  :initial-element -1) 1))))
+		     :preview t)
 		    (format t "~a ship~:p left.~%" left)
-		    (format t "Insert your ~a-deck ship position (to clear gamespace insert :clear among coords): "
-			    ship)
+		    (format t "Insert your ~a-deck ship position (to clear gamespace insert :clear among coords): " ship)
 		    (finish-output)
-		    (setf pos (loop for coord in game-space-config collecting (read)))
-		    (when (find :clear pos) (push (list 1 (make-list (length game-space-config)
-							             :initial-element -1) 1)
+		    (setf pos (loop for coord in game-space-config
+				 collecting (read)))
+		    (when (find :clear pos)
+		      (push (list 1 (make-list (length game-space-config)
+					       :initial-element -1) 1)
 						  position) (return))
 		    (when (find-if-not #'integerp pos)
 		      (error "Wrong answer!"))
 		    (if (and (< 1 ship) (< 1 (length game-space-config)))
 			(progn
-			  (format
-			   t "Insert your ~a-deck ship orientation: 1) gorisontal; 2) vertical; etc:"
-			   ship)
+			  (format t "Insert your ~a-deck ship orientation: 1) gorisontal; 2) vertical; etc:" ship)
 			  (finish-output)
 			  (setf pos (list ship pos (read))))
 			(setf pos (list ship pos 1)))
@@ -136,7 +140,8 @@
       (t (error "Wrong answer!")))))
 
 (defun check-shooting-place (shooting-place game-space-config)
-  (not (find-if-not #'null (mapcar (lambda (point conf) (or (not (integerp point))
+  (not (find-if-not #'null (mapcar (lambda (point conf) (or (not
+							     (integerp point))
 							    (> 1 point)
 							    (< conf point)))
 				   shooting-place game-space-config))))
@@ -188,10 +193,11 @@
 		     (format t "This is your gamespace:~%")
 		     (print-gamespace gamespace)
 		     (format t "This is the comp's gamespace:~%")
-		     (print-gamespace gamespace-comp t)
-		     (if (not (find-ship-alive gamespace-comp))
+		     (print-gamespace gamespace-comp :enemy t)
+		     (if (cleared gamespace-comp)
 			 (return (win turn name)))
-		     (let ((shooting-place (ask-human-for-shoot game-space-config))
+		     (let ((shooting-place (ask-human-for-shoot
+					    game-space-config))
 			   result)
 		       (if (check-shooting-place shooting-place
 						 game-space-config)
@@ -217,7 +223,7 @@
 		  (let
 		      ((battle-result-comp
 			(loop 
-			   (if (not (find-ship-alive gamespace))
+			   (if (cleared gamespace)
 			       (return (win turn :comp)))
 			   (setf shooting-place-comp (funcall killer
 							      result-comp))

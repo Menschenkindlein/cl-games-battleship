@@ -39,35 +39,25 @@
 				 (mapcar (lambda (x) (+ 2 x)) gsconfig))))))
 
 (defclass ship (multy-cell-object)
-  ((coordinates :initarg :coords
-		:reader coords)
-   (size :initarg :size
-	 :reader size)
-   (direction :initarg :direction
-	      :reader direction)
-   (alive :initform t
+  ((alive :initform t
 	  :accessor alive)))
 
 (defclass real-ship (ship) ;; The difference is neaded for killer AI
   ((neighbours :accessor neighbours)))
 
-(defmethod initialize-instance :after ((ship ship) &key)
-  (with-accessors ((coords coords)
-		   (size size)
-		   (direction direction)) ship
-    (setf (own-cells ship)
-	  (loop for inc upto (- size 1)
-	     collecting
-	       (let ((coords (loop for coord in coords collecting coord)))
-		 (incf (nth direction coords) inc)
-		 (make-instance 'ship-cell
-				:coords coords))))))
+(defmethod initialize-instance :after ((ship ship) &key coords size direction)
+  (setf (own-cells ship)
+	(loop for inc upto (- size 1)
+	   collecting
+	     (let ((coords (loop for coord in coords collecting coord)))
+	       (incf (nth direction coords) inc)
+	       (make-instance 'ship-cell
+			      :coords coords)))))
 
 (defmethod initialize-instance :after ((ship real-ship) &key)
-  (let ((own-cells (loop for cell in (own-cells ship)
-		      collecting (coords cell))))
-    (setf (neighbours ship)
-	  (aura own-cells 1))))
+  (setf (neighbours ship)
+	(aura (loop for cell in (own-cells ship)
+		      collecting (coords cell)) 1)))
 
 (defgeneric shoot (object where))
 
@@ -126,13 +116,18 @@
 	     (find-if (lambda (x) (> 1 x)) cell)
 	     (find-if-not #'null (mapcar #'< (gsconfig game-space) cell))))))
 
+(defgeneric cleared (game-space))
+
+(defmethod cleared ((game-space game-space))
+  (not (find-if (lambda (ship) (alive ship))
+		(ships game-space))))
+
 (defmethod initialize-instance :after ((game-space game-space)
 				       &key ships-positions)
   (setf (ships game-space)
 	(loop for ship in ships-positions
 	   collecting
 	     (make-instance 'real-ship
-			    ;; Converting numbers into indexes
 			    :size (first ship)
 			    :coords (second ship)
 			    :direction (- (third ship) 1))))
@@ -140,25 +135,22 @@
 					:gsconfig (gsconfig game-space)
 					:ships (ships game-space))))
 
-(defgeneric find-a-ship (game-space where))
-
-(defmethod find-a-ship ((game-space game-space) where)
-  (find-if #'(lambda (ship)
-	       (find-cell ship where)) (ships game-space)))
-
-(defgeneric find-ship-alive (game-space))
-
-(defmethod find-ship-alive ((game-space game-space))
-  (find-if #'(lambda (ship)
-	       (if (alive ship)
-		   ship)) (ships game-space)))
-
 (defmethod shoot ((game-space game-space) where)
-  (if (find-a-ship game-space where)
-      (shoot-ship (find-a-ship game-space where) (sea game-space) where)
+  (if (find-if #'(lambda (ship)
+		   (find-cell ship where))
+	       (ships game-space))
+      (shoot-ship (find-if #'(lambda (ship)
+			       (find-cell ship where))
+			   (ships game-space))
+		  (sea game-space) where)
       (shoot (sea game-space) where)))
 
-(defmethod find-cell ((object game-space) where)
-  (if (find-a-ship object where)
-      (find-cell (find-a-ship object where) where)
-      (find-cell (sea object) where)))
+(defmethod find-cell ((game-space game-space) where)
+  (if (find-if #'(lambda (ship)
+		   (find-cell ship where))
+	       (ships game-space))
+      (find-cell (find-if #'(lambda (ship)
+			      (find-cell ship where))
+			  (ships game-space))
+		 where)
+      (find-cell (sea game-space) where)))
