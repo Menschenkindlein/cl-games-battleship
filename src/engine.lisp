@@ -34,12 +34,6 @@
 (defun (setf find-cell) (value game-space cell)
   (setf (apply #'aref (own-cells game-space) cell) value))
 
-(defmacro checking-setf (uninited access initform)
-  `(if (eql ,uninited ,access)
-       (setf ,access
-	     ,initform)
-       ,access))
-
 (defmethod initialize-instance :after ((game-space game-space)
 				       &key ships-positions)
   (setf (own-cells game-space)
