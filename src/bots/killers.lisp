@@ -54,8 +54,10 @@
 	(cond ((eql result :killed)
 	       (push to-kill killed-ships)
 	       (setf killed
-		     (remove-duplicates (append killed 
-						(aura (search-for-ship to-kill killed-ships) 1)))))
+		     (remove-duplicates
+		      (append killed 
+			      (aura (search-for-ship
+				     to-kill killed-ships) 1)))))
 	      ((eql result :shooted)
 	       (push to-kill killed-ships)
 	       (setf killed 

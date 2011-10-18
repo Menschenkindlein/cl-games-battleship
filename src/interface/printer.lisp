@@ -10,10 +10,12 @@
 	     (if (= (length sizes) (length divisors))
 		 (progn
 		   (funcall (car divisors) sizes i)
-		   (print-level gamespace (cdr divisors) :address (cons i address)
+		   (print-level gamespace (cdr divisors)
+				:address (cons i address)
 				:enemy enemy :preview preview))	
 		 (progn
-		   (format t "~%~%It is ~a-D level number ~a:~%" (length (cdr sizes)) i)
+		   (format t "~%~%It is ~a-D level number ~a:~%"
+			   (length (cdr sizes)) i)
 		   (print-level gamespace divisors :address (cons i address)
 				:enemy enemy :preview preview))))
 	(let ((cell (find-cell gamespace address)))
@@ -21,21 +23,28 @@
 	      (if (shooted cell)
 		  (princ "bXd")
 		  (princ (if enemy "   " "[Q]")))
-	      (if (shooted cell)
-		  (princ "(O)")
-		  (princ (if (find address (apply #'append
-						  (collect-the-lowest-level
-						   (neighbours ship)
-						   (ship in (ships gamespace))))
-				   :test #'equal) " - " "   "))))))))
+	      (if (or (shooted cell)
+		      (and
+		       preview
+		       (find cell
+			     (apply #'append
+				    (collect-the-lowest-level
+				     (neighbours ship)
+				     (ship in (ships
+					       gamespace)))))))
+		  (princ " - ")
+		  (princ "   ")))))))
 
 (defun print-gamespace (gamespace &key enemy preview)
   (let ((divisors 
 	 (list
 	  (lambda (sizes i)
-	    (unless (= 0 i) (format t "~%~%It is ~a-D level number ~a:~%" (length (cdr sizes)) i))
+	    (unless (= 0 i)
+	      (format t "~%~%It is ~a-D level number ~a:~%"
+		      (length (cdr sizes)) i))
 	    (princ "    ")
-	    (format t "~{~2d ~}" (loop for x from 1 upto (car (last sizes)) collecting x)))
+	    (format t "~{~2d ~}"
+		    (loop for x from 1 upto (car (last sizes)) collecting x)))
 	  (lambda (sizes i) (declare (ignore sizes))
 		  (format t "~%~2d |" i))
 	  (lambda (sizes i) (declare (ignore sizes i))))))
@@ -45,4 +54,5 @@
 			 (length (gsconfig gamespace)) 1)
 		      divisors)
 		 (gsconfig gamespace) 0))
-    (print-level gamespace divisors :enemy enemy :preview preview) (princ #\Newline)))
+    (print-level gamespace divisors :enemy enemy :preview preview)
+    (princ #\Newline)))

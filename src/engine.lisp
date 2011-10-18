@@ -1,71 +1,68 @@
 (in-package :cl-games-battleship)
 
+(defclass real-thing ()
+  ((neighbours :initarg :neighbours :accessor neighbours)))
+
 (defclass cell ()
-  ((coordinates :initarg :coords
-		:reader coords)
-   (shooted :initform nil
+  ((shooted :initform nil
 	    :accessor shooted)))
 
 (defclass sea-cell (cell) ())
 
-(defclass ship-cell (cell) ())
-
-(defgeneric shoot-cell (cell))
-
-(defmethod shoot-cell ((cell cell))
-  (setf (shooted cell) t))
+(defclass ship-cell (real-thing cell) 
+  ((ship :initarg :ship :reader ship-of)))
 
 (defclass multy-cell-object ()
-  ((own-cells :accessor own-cells)))
+  ((own-cells :accessor own-cells)
+   (correct :initform t
+	    :accessor correct)))
 
-(defgeneric find-cell (object where))
-
-(defmethod find-cell ((object multy-cell-object) where)
-  (find where (own-cells object)
-	:test #'(lambda (where cell)
-		  (equal where (coords cell)))))
-
-(defclass sea (multy-cell-object) ())
-
-(defmethod initialize-instance :after ((sea sea) &key gsconfig ships)
-  (setf (own-cells sea)
-	(remove-if #'(lambda (cell)
-		       (find-if #'(lambda (ship)
-				    (find-cell ship (coords cell)))
-				ships))
-		   (mapcar (lambda (cell)
-			     (make-instance 'sea-cell :coords cell))
-			   (cube (sth-list gsconfig 0)
-				 (mapcar (lambda (x) (+ 2 x)) gsconfig))))))
-
-(defclass ship (multy-cell-object)
+(defclass ship (multy-cell-object real-thing)
   ((alive :initform t
 	  :accessor alive)))
 
-(defclass real-ship (ship) ;; The difference is neaded for killer AI
-  ((neighbours :accessor neighbours)))
+(defclass game-space (multy-cell-object)
+  ((game-space-config :initarg :gsconfig
+		      :reader gsconfig)
+   (ships :accessor ships)))
 
-(defmethod initialize-instance :after ((ship ship) &key coords size direction)
-  (setf (own-cells ship)
-	(loop for inc upto (- size 1)
+(defgeneric find-cell (game-space where))
+
+(defmethod find-cell ((game-space game-space) cell)
+  (apply #'aref (own-cells game-space) cell))
+
+(defun (setf find-cell) (value game-space cell)
+  (setf (apply #'aref (own-cells game-space) cell) value))
+
+(defmacro checking-setf (uninited access initform)
+  `(if (eql ,uninited ,access)
+       (setf ,access
+	     ,initform)
+       ,access))
+
+(defmethod initialize-instance :after ((game-space game-space)
+				       &key ships-positions)
+  (setf (own-cells game-space)
+	(make-array (mapcar (lambda (x) (+ 2 x)) (gsconfig game-space))
+		    :initial-element nil))
+  (setf (ships game-space)
+	(loop for ship in ships-positions
 	   collecting
-	     (let ((coords (loop for coord in coords collecting coord)))
-	       (incf (nth direction coords) inc)
-	       (make-instance 'ship-cell
-			      :coords coords)))))
-
-(defmethod initialize-instance :after ((ship real-ship) &key)
-  (setf (neighbours ship)
-	(aura (loop for cell in (own-cells ship)
-		      collecting (coords cell)) 1)))
-
-(defgeneric shoot (object where))
-
-(defmethod shoot ((object sea) where)
-  (shoot-cell (find-cell object where))
-  :missed)
-
-(defgeneric shoot-ship (ship sea where))
+	     (let ((ship-object
+		    (make-instance 'ship
+				   :size (first ship)
+				   :coords (second ship)
+				   :direction (- (third ship) 1)
+				   :game-space game-space)))
+	       (if (null (correct ship-object))
+		   (return (setf (correct game-space) nil))
+		   ship-object))))
+  (when (correct game-space)
+    (loop for cell in (cube (sth-list (gsconfig game-space) 1)
+			    (gsconfig game-space))
+       doing
+	 (unless (find-cell game-space cell)
+	   (setf (find-cell game-space cell) (make-instance 'sea-cell))))))
 
 (defun perforated-sphere (center)
   (remove-if #'(lambda (x)
@@ -73,84 +70,81 @@
 			        (mapcar #'= x center))))
 	     (sphere center 1)))
 
-(defmethod shoot-ship ((ship real-ship) (sea sea) where)
-  (shoot-cell (find-cell ship where))
-  (if (not (find-if-not #'(lambda (cell)
-			    (shooted cell))
-			(own-cells ship)))
-      (progn
-	(setf (alive ship) nil)
-	(loop for cell in (neighbours ship) doing
-	     (shoot sea cell))
-	:killed)
-      (progn
-	(loop for cell in
-	     (perforated-sphere where)
-	   doing
-	     (shoot sea cell))
-	:shooted)))
+(defmethod initialize-instance :after ((ship ship)
+				       &key coords size direction game-space)
+  (let ((own-cells-indexes
+	 (loop for inc upto (- size 1)
+	   collecting
+	     (let ((coords (copy-list coords)))
+	       (incf (nth direction coords) inc)
+	       (if (or (eql (class-of (find-cell game-space coords))
+			    (find-class 'ship-cell))
+		       (find-if-not #'null
+				    (mapcar
+				     (lambda (x g)
+				       (or (< g x)
+					   (> 1 x)))
+				     coords (gsconfig game-space))))
+		   (return (setf (correct ship) nil))
+		   coords)))))
+    (when (correct ship)
+      (setf (own-cells ship)
+	    (loop for coords in own-cells-indexes collecting
+		 (setf (find-cell game-space coords)
+		       (make-instance
+			'ship-cell
+			:ship ship
+			:neighbours 
+			(loop for ncell
+			   in (perforated-sphere coords)
+			   collecting
+			     (or (find-cell game-space ncell)
+				 (setf (find-cell game-space ncell)
+				       (make-instance 'sea-cell))))))))
+      (setf (neighbours ship)
+	    (loop for cell in
+		 (aura own-cells-indexes 1)
+	       collecting
+		 (if (eql (class-of (find-cell game-space cell))
+			  (find-class 'ship-cell))
+		     (return (setf (correct ship) nil))
+		     (or (find-cell game-space cell)
+			 (setf (find-cell game-space cell)
+			       (make-instance 'sea-cell)))))))))
 
-(defclass game-space ()
-  ((game-space-config :initarg :gsconfig
-		      :reader gsconfig)
-   (ships :accessor ships)
-   (sea :accessor sea)
-   (correct :accessor correct)))
+(defgeneric shoot (game-space where))
 
-(defgeneric correct (game-space))
+(defmethod shoot ((game-space game-space) where)
+  (kill (find-cell game-space where)))
 
-(defmethod correct ((game-space game-space))
-  (let ((all-own-cells (mapcar #'(lambda (cell)
-				   (coords cell))
-			       (apply #'append
-				      (collect-the-lowest-level
-				       (own-cells ship)
-				       (ship in (ships game-space))))))
-	(all-nearest-cells (apply #'append
-				  (collect-the-lowest-level
-				   (neighbours ship)
-				   (ship in (ships game-space))))))
-    (loop for cell in all-own-cells never
-	 (or (find cell all-nearest-cells :test #'equal)
-	     (< 1 (count cell all-own-cells :test #'equal))
-	     (find-if (lambda (x) (> 1 x)) cell)
-	     (find-if-not #'null (mapcar #'< (gsconfig game-space) cell))))))
+(defgeneric kill (object))
+
+(defmethod kill :before ((cell cell))
+  (unless (shooted cell)
+    (setf (shooted cell) t)))
+
+(defmethod kill ((cell sea-cell))
+  :missed)
+
+(defgeneric drowning (ship))
+
+(defmethod drowning ((ship ship))
+  (not (find-if-not #'shooted (own-cells ship))))
+
+(defmethod kill :before ((real-thing real-thing))
+  (mapcar #'kill (neighbours real-thing)))
+
+(defmethod kill ((cell ship-cell))
+  (if (drowning (ship-of cell))
+      (kill (ship-of cell))
+      :shooted))
+
+(defmethod kill ((ship ship))
+  (setf (alive ship) nil)
+  :killed)
 
 (defgeneric cleared (game-space))
 
 (defmethod cleared ((game-space game-space))
   (not (find-if (lambda (ship) (alive ship))
 		(ships game-space))))
-
-(defmethod initialize-instance :after ((game-space game-space)
-				       &key ships-positions)
-  (setf (ships game-space)
-	(loop for ship in ships-positions
-	   collecting
-	     (make-instance 'real-ship
-			    :size (first ship)
-			    :coords (second ship)
-			    :direction (- (third ship) 1))))
-  (setf (sea game-space) (make-instance 'sea
-					:gsconfig (gsconfig game-space)
-					:ships (ships game-space))))
-
-(defmethod shoot ((game-space game-space) where)
-  (if (find-if #'(lambda (ship)
-		   (find-cell ship where))
-	       (ships game-space))
-      (shoot-ship (find-if #'(lambda (ship)
-			       (find-cell ship where))
-			   (ships game-space))
-		  (sea game-space) where)
-      (shoot (sea game-space) where)))
-
-(defmethod find-cell ((game-space game-space) where)
-  (if (find-if #'(lambda (ship)
-		   (find-cell ship where))
-	       (ships game-space))
-      (find-cell (find-if #'(lambda (ship)
-			      (find-cell ship where))
-			  (ships game-space))
-		 where)
-      (find-cell (sea game-space) where)))
