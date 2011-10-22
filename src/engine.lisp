@@ -142,3 +142,4 @@
 (defmethod cleared ((game-space game-space))
   (not (find-if (lambda (ship) (alive ship))
 		(ships game-space))))
+

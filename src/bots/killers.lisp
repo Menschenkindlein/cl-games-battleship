@@ -1,6 +1,6 @@
 (in-package :cl-games-battleship)
 
-(defun constant-killer (&key game-space-config ships-config)
+(defun constant-killer (game-space-config ships-config)
   (declare (ignore ships-config))
   (let ((gsconfig game-space-config)
 	to-kill)
@@ -14,7 +14,7 @@
 				    (second to-kill)))))
 	to-kill)))
 
-(defun random-killer (&key game-space-config ships-config)
+(defun random-killer (game-space-config ships-config)
   (declare (ignore ships-config))
   (let ((gsconfig game-space-config)
 	killed
@@ -44,7 +44,7 @@
 				(remove just-shooted killed-ships)))
        :test #'equal)))
 
-(defun clever-random-killer (&key game-space-config ships-config)
+(defun clever-random-killer (game-space-config ships-config)
   (declare (ignore ships-config))
   (let ((gsconfig game-space-config)
 	killed-ships
