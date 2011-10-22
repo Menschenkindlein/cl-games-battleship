@@ -71,40 +71,45 @@
 	   collecting
 	     (let ((coords (copy-list coords)))
 	       (incf (nth direction coords) inc)
-	       (if (or (eql (class-of (find-cell game-space coords))
-			    (find-class 'ship-cell))
-		       (find-if-not #'null
-				    (mapcar
-				     (lambda (x g)
-				       (or (< g x)
-					   (> 1 x)))
-				     coords (gsconfig game-space))))
+	       (if (or (some (complement #'plusp) coords)
+		       (some #'< (gsconfig game-space) coords))
 		   (return (setf (correct ship) nil))
 		   coords)))))
     (when (correct ship)
       (setf (own-cells ship)
 	    (loop for coords in own-cells-indexes collecting
-		 (setf (find-cell game-space coords)
-		       (make-instance
-			'ship-cell
-			:ship ship
-			:neighbours 
-			(loop for ncell
-			   in (perforated-sphere coords)
-			   collecting
-			     (or (find-cell game-space ncell)
-				 (setf (find-cell game-space ncell)
-				       (make-instance 'sea-cell))))))))
-      (setf (neighbours ship)
-	    (loop for cell in
-		 (aura own-cells-indexes 1)
-	       collecting
-		 (if (eql (class-of (find-cell game-space cell))
+		 (if (eql (class-of (find-cell game-space coords))
 			  (find-class 'ship-cell))
-		     (return (setf (correct ship) nil))
-		     (or (find-cell game-space cell)
-			 (setf (find-cell game-space cell)
-			       (make-instance 'sea-cell)))))))))
+		     (return (setf (correct ship) nil))		     
+		     (setf (find-cell game-space coords)
+			   (make-instance
+			    'ship-cell
+			    :ship ship
+			    :neighbours 
+			    (loop for ncell
+			       in (perforated-sphere coords)
+			       collecting
+				 (or (progn
+				       (find-cell game-space ncell)
+				       (if (eql (class-of
+						 (find-cell game-space coords))
+						(find-class 'ship-cell))
+					   (return (setf (correct ship) nil))
+					   (find-cell game-space ncell)))
+				     (setf (find-cell game-space ncell)
+					   (make-instance
+					    'sea-cell)))))))))
+      (when (correct ship)
+	(setf (neighbours ship)
+	      (loop for cell in
+		   (aura own-cells-indexes 1)
+		 collecting
+		   (if (eql (class-of (find-cell game-space cell))
+			    (find-class 'ship-cell))
+		       (return (setf (correct ship) nil))
+		       (or (find-cell game-space cell)
+			   (setf (find-cell game-space cell)
+				 (make-instance 'sea-cell))))))))))
 
 (defgeneric shoot (game-space where))
 
