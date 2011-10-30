@@ -16,4 +16,7 @@
 	       (:module "interface" :depends-on ("engine" "bots")
 			:components
 			((:file "printer")
-			 (:file "interface" :depends-on ("printer"))))))))
+			 (:file "printer-console"
+				:depends-on ("printer"))
+			 (:file "interface"
+				:depends-on ("printer-console"))))))))

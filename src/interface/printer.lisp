@@ -1,29 +1,32 @@
 (in-package :cl-games-battleship)
 
 (defmethod print-game-space ((game-space game-space) &key enemy preview)
-  (let ((answer (make-array (gsconfig game-space))))
-    (loop for cell in (cube (gsconfig game-space)
-			    (sthlist (gsconfig game-space) 1))
+  (let ((answer (make-array (mapcar (lambda (x) (+ 2 x))
+				    (gsconfig game-space))
+			    :initial-element nil)))
+    (loop for cell in (cube (sth-list (gsconfig game-space) 1)
+			    (gsconfig game-space))
 	 doing
 	 (let ((gscell (find-cell game-space cell)))
-	   (setf (apply #'aref answer (mapcar #1- cell))
-		 (if (eql (class-of cell) (find-class 'ship-cell))
-		     (if (shooted cell)
+	   (setf (apply #'aref answer cell)
+		 (if (eql (class-of gscell) (find-class 'ship-cell))
+		     (if (shooted gscell)
 			 2                        ; <<<
 			 (if enemy 
-			     nil                  ; <<<
+			     9                    ; <<<
 			     1))                  ; <<<
-		     (if (or (shooted cell)
+		     (if (or (shooted gscell)
 			     (and
 			      preview
-			      (find cell
+			      (find gscell
 				    (apply #'append
 					   (collect-the-lowest-level
 					    (neighbours ship)
 					    (ship in (ships
-						      gamespace)))))))
+						      game-space)))))))
 			 0                        ; <<<
-			 nil)))))))               ; <<<
+			 9)))))                   ; <<<
+    answer))
 
 (defmacro print-game-space-for-sth (printed-game-space
 				    unknown sea ship shooted

@@ -55,7 +55,8 @@
 (defun appending-ort-reflect (reflector thing)
   (if (find-if-not #'listp thing)
       (error "Not list of cells")
-      (remove-duplicates (append thing (ort-reflect reflector thing)) :test #'equal)))
+      (remove-duplicates (append thing (ort-reflect reflector thing))
+			 :test #'equal)))
 
 (defun cube (lowest-cell dimensions)
   (apply-vector lowest-cell
@@ -87,7 +88,7 @@
 	 (remove-duplicates
 	  (apply #'append
 		 (loop for cell in cells collecting
-		      (sphere cell radius :border (fof border))))))
+		      (sphere cell radius :border border)))))
 	(deletion (if border
 		      (apply #'append
 			     (loop for cell in cells

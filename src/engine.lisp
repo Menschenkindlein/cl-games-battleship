@@ -143,3 +143,30 @@
   (not (find-if (lambda (ship) (alive ship))
 		(ships game-space))))
 
+;; killer interface
+
+(defclass killer ()
+  ((player :accessor player :initarg :player)
+   (killing-sequence :accessor killing-sequence)))
+
+(defmethod initialize-instance :after ((killer killer) &key config)
+  (let ((killer-construct (funcall (player killer)
+				   (first config)
+				   (second config))))
+    (setf (killing-sequence killer) (first killer-construct))
+    (setf (player killer) (second killer-construct))))
+
+(defgeneric ask (killer))
+
+(defmethod ask ((killer killer))
+  (pop (killing-sequence killer)))
+
+(defgeneric change-killing-sequence (killer result))
+
+(defmethod change-killing-sequence ((killer killer) result)
+  (if (player killer)
+      (setf (killing-sequence killer)
+	    (funcall
+	     (funcall (player killer)
+		      result)
+	     (killing-sequence killer)))))
