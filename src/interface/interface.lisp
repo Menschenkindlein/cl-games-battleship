@@ -29,9 +29,9 @@
 				   :ships-positions
 				   ships-positions))
 	 (killer (eval `(funcall ,killer-constructor
-				 :game-space-config ',game-space-config
-				 :ships-config ',ships-config))))
-    (print-gamespace gamespace :preview t)
+				 ',game-space-config
+				 ',ships-config))))
+    (print-gamespace-console gamespace :preview t)
     (let* ((shooting-place (eval `(funcall ,killer)))
 	   (result (shoot gamespace shooting-place)))
       (if (and (correct gamespace)
@@ -72,17 +72,17 @@
 	       doing
 		 (loop
 		    (format t "This is your current position:~%")
-		    (print-gamespace
-		     (make-instance 'game-space
-				    :gsconfig game-space-config
-				    :ships-positions
-				    (if position
-					position
-					(list 
-					 (list 1 (make-list
-						  (length game-space-config)
-						  :initial-element -1) 1))))
-		     :preview t)
+		    (print-gamespace-console
+		      (make-instance 'game-space
+				     :gsconfig game-space-config
+				     :ships-positions
+				     (if position
+					 position
+					 (list 
+					  (list 1 (make-list
+						   (length game-space-config)
+						   :initial-element -1) 1))))
+		      :preview t)
 		    (format t "~a ship~:p left.~%" left)
 		    (format t "Insert your ~a-deck ship position (to clear gamespace insert :clear among coords): " ship)
 		    (finish-output)
@@ -174,8 +174,8 @@
 				   :ships-positions
 				   ships-positions))
 	 (killer (eval `(funcall ,killer-constructor
-				 :game-space-config ',game-space-config
-				 :ships-config ',ships-config)))
+				 ',game-space-config
+				 ',ships-config)))
 	 shooting-place-comp result-comp)
     (cond
       ((or (not (correct gamespace))
@@ -191,9 +191,9 @@
 		((battle-result-human
 		  (loop
 		     (format t "This is your gamespace:~%")
-		     (print-gamespace gamespace)
+		     (print-gamespace-console gamespace)
 		     (format t "This is the comp's gamespace:~%")
-		     (print-gamespace gamespace-comp :enemy t)
+		     (print-gamespace-console gamespace-comp :enemy t)
 		     (if (cleared gamespace-comp)
 			 (return (win turn name)))
 		     (let ((shooting-place (ask-human-for-shoot
