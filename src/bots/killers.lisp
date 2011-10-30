@@ -72,6 +72,3 @@
 
 ;; Intelligent killer
 
-;; (defclass hypotetic-ship (ship) ())
-
-; (defmethod initialize-instanse :after ((ship hypotetic-ship) &key)

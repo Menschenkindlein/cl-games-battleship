@@ -151,27 +151,15 @@
 ;; killer interface
 
 (defclass killer ()
-  ((player :accessor player :initarg :player)
-   (killing-sequence :accessor killing-sequence)))
+  ((player :accessor player :initarg :player)))
 
 (defmethod initialize-instance :after ((killer killer) &key config)
-  (let ((killer-construct (funcall (player killer)
-				   (first config)
-				   (second config))))
-    (setf (killing-sequence killer) (first killer-construct))
-    (setf (player killer) (second killer-construct))))
+  (setf (player killer) (funcall (player killer)
+				 (first config)
+				 (second config))))
 
-(defgeneric ask (killer))
+(defgeneric ask (killer result))
 
-(defmethod ask ((killer killer))
-  (pop (killing-sequence killer)))
+(defmethod ask ((killer killer) result)
+  (funcall (player killer) result))
 
-(defgeneric change-killing-sequence (killer result))
-
-(defmethod change-killing-sequence ((killer killer) result)
-  (if (player killer)
-      (setf (killing-sequence killer)
-	    (funcall
-	     (funcall (player killer)
-		      result)
-	     (killing-sequence killer)))))
