@@ -19,8 +19,6 @@
   (if (eql placer :random-bf) (setf placer #'random-placer-bf))
   (if (eql killer-constructor :random)
       (setf killer-constructor #'random-killer))
-  (if (eql killer-constructor :random-cl)
-      (setf killer-constructor #'clever-random-killer))
   (let* ((ships-positions (eval `(funcall ,placer
 					  ',game-space-config
 					  ',ships-config)))
@@ -154,12 +152,10 @@
 					 2 2 2
 					 1 1 1 1))
 			 (placer #'random-placer-bf)
-			 (killer-constructor #'clever-random-killer))
+			 (killer-constructor #'random-killer))
   (if (eql placer :constant) (setf placer #'constant-placer))
   (if (eql killer-constructor :constant)
       (setf killer-constructor #'constant-killer))
-  (if (eql killer-constructor :random)
-      (setf killer-constructor #'random-killer))
   (let* ((ships-positions-comp (eval `(funcall ,placer
 					       ',game-space-config
 					       ',ships-config)))
