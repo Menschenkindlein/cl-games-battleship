@@ -10,7 +10,7 @@
 		     :random-placer-bf
 		     :constant-killer
 		     :random-killer
-		     :clever-random-killer
+		     :strategic-random-killer
 		     :cube
 		     :aura
 		     :sphere

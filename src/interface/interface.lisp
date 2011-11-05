@@ -19,6 +19,8 @@
   (if (eql placer :random-bf) (setf placer #'random-placer-bf))
   (if (eql killer-constructor :random)
       (setf killer-constructor #'random-killer))
+  (if (eql killer-constructor :strategic)
+      (setf killer-constructor #'strategic-random-killer))
   (let* ((ships-positions (eval `(funcall ,placer
 					  ',game-space-config
 					  ',ships-config)))
