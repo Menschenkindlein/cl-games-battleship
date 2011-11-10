@@ -116,7 +116,8 @@
 	      cube-config)))
 
 (defun strategic-random-killer (game-space-config ships-config)
- (let (killing-sequence
+ (let (killing-sequences-collection
+       killing-sequence
        (ships-config (sort (loop for x = 1 then (* x 2) collecting
 			      x
 			      while (< x (first (sort ships-config #'>))))
@@ -126,6 +127,16 @@
 			   (- (random x))))
        killed
        to-kill)
+   (setf killing-sequences-collection
+	 (mapcar
+	  (lambda (ship)
+	    (if (= 0 (random 2))
+		#'identity
+		#'nreverse)
+	    (random-grid game-space-config
+			 ship
+			 starting-cell))
+	  ships-config))
     #'(lambda (&optional result)
 	(cond ((eql result :killed)
 	       (push to-kill killed-ships)
@@ -138,19 +149,22 @@
 	       (push to-kill killed-ships)
 	       (setf killed 
 		     (remove-duplicates
-		      (append killed (perforated-sphere to-kill))))))
+		      (append killed (perforated-sphere to-kill))))
+	       (push killing-sequence killing-sequences-collection)
+	       (setf killing-sequence (remove-if
+				       (lambda (scell)
+					 (or (some (complement #'plusp)
+						   scell)
+					     (some (lambda (x conf)
+						     (> x conf))
+						   scell
+						   game-space-config)))
+				       (aura (list to-kill) 1)))))
 	(loop
 	   (if (null killing-sequence)
-	       (setf killing-sequence
-		     (funcall
-		      (if (= 0 (random 2))
-			  #'identity
-			  #'nreverse)
-			  (random-grid game-space-config
-				       (pop ships-config)
-				       starting-cell)))
+	       (setf killing-sequence (pop killing-sequences-collection))
 	       (progn
-		 (setf to-kill (pop killing-sequence))
+		 (setf to-kill (random-pop killing-sequence))
 		 (unless (find to-kill killed :test #'equal)
 		   (push to-kill killed)
 		   (return to-kill))))))))
