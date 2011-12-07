@@ -26,24 +26,24 @@
   (format t "I'm placing my ships...") (finish-output)
   (loop for try from 1 by 1 doing
        (let ((places now-placed))
-	 (loop for ship in ships-config doing
-	      (push
-	       (cons ship
-		     (loop
-			  (let ((coords (loop for coord in game-space-config
-					   collecting
-					     (+ 1 (random coord))))
-				(direction (+ 1 (random
-						 (length game-space-config)))))
-			    (when (and (> (nth (1- direction) game-space-config)
-					  (+ ship (nth (1- direction) coords)))
-				       (not (find coords places
-						  :test
-						  (lambda (crd place)
-						    (equal crd
-							   (second place))))))
-			      (return (list coords direction))))))
-	       places))
+	 (loop named ships-loop for ship in ships-config doing
+	      (loop for little-try from 1 by 1 doing
+		   (push
+		    (list ship
+			  (loop for coord in game-space-config
+			     collecting
+			       (+ 1 (random coord)))
+			  (+ 1 (random
+				(length game-space-config))))
+		    places)
+		   (if (correct (make-instance 'game-space
+					       :gsconfig game-space-config
+					       :ships-positions
+					       places))
+		       (return)
+		       (if (< little-try (first ships-config))
+			   (pop places)
+			   (return-from ships-loop)))))
 	 (when (= 0 (rem try 1000)) (princ ".") (finish-output))
 	 (when (= 100000 try) (error "This config is too difficult for me."))
 	 (when (correct (make-instance 'game-space
